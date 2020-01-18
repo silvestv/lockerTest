@@ -14,13 +14,15 @@ namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
-        private String connectionString = "Data Source=LAPTOP-QNN1SCH4;Initial Catalog=AppSmartLockerdb1;Integrated Security = True";
-        private String currentSelectedProc = "";
+        private const String connectionString = "Data Source=LAPTOP-QNN1SCH4;Initial Catalog=AppSmartLockerdb1;Integrated Security = True";
         private const string column_IsLocked = "ISLOCKED";
         private const string column_TimeAuth = "AUTHTIME";
         private const string column_TimeLock = "LOCKTIME";
         private const string column_NameProcess = "NAMEPROCESS";
         private const int second_by_day = 86400;
+
+        private String currentSelectedProc = "";
+
         public Form1()
         {
             InitializeComponent();
@@ -65,6 +67,7 @@ namespace WindowsFormsApp1
 
 
         /////////////////////////////////////////LES REQUETES EN BDD///////////////////////////////////////////
+        ///////////////////////////////////////////SUR LA TABLE APP////////////////////////////////////////////
         ///////////LES INSERTS///////
         ///
         private void InsertDataApp(string connectionString, string nameProcess, string libelle, int pid, string chemin, int isLocked, int authTime, int lockTime)
@@ -114,7 +117,7 @@ namespace WindowsFormsApp1
             }
         }
 
-        /////LES UPDATES
+        /////LES UPDATES 
         private void UpdateDataAppPID(string connectionString, string nameProcess,int pid)
         {
             string query = "UPDATE dbo.APP SET PID = @pid WHERE NAMEPROCESS = @nameProcess";
@@ -124,23 +127,6 @@ namespace WindowsFormsApp1
             {
                 // define parameters and their values
                 cmd.Parameters.Add("@pid", SqlDbType.Int).Value = pid;
-                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 50).Value = nameProcess;
-                // open connection, execute UPDATE, close connection
-                cn.Open();
-                cmd.ExecuteNonQuery();
-                cn.Close();
-            }
-        }
-
-        private void UpdateDataAppIsLocked(string connectionString, string nameProcess, int isLocked)
-        {
-            string query = "UPDATE dbo.APP SET ISLOCKED = @isLocked WHERE NAMEPROCESS = @nameProcess";
-            // create connection and command
-            using (SqlConnection cn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand(query, cn))
-            {
-                // define parameters and their values
-                cmd.Parameters.Add("@isLocked", SqlDbType.Int).Value = isLocked;
                 cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 50).Value = nameProcess;
                 // open connection, execute UPDATE, close connection
                 cn.Open();
@@ -189,8 +175,67 @@ namespace WindowsFormsApp1
             }
             return result;
         }
+        ///////////////////////////////////////SUR LA TABLE LOCK/////////////////////////////////////////////
+        ///////////LES UPDATES
+        
+            //le paramètre column doit spécifier les colonnes soit AUTHTIME ou LOCKTIME, selon la colonne de la table LOCK que l'on cherche à mettre à jour.
+            //On conseille spécifier une variable constante string pour le nom de la colonne, comme effectué à la ligne 18 à 21
+        private void UpdateDataLockAuthTimeOrLockTime(string connectionString, string nameProc, string column, int valueToDecrementOrReinitiate) 
+        {
+            if (column == "AUTHTIME" || column == "LOCKEDTIME")
+            {
+                string query = "UPDATE dbo.LOCK SET " + column + " = @valueToDecrementOrReinitiate WHERE NAMEPROC = @nameProc";
+                // create connection and command
+                using (SqlConnection cn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, cn))
+                {
+                    // define parameters and their values
+                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 100).Value = nameProc;
+                    cmd.Parameters.Add("@valueToDecrementOrReinitiate", SqlDbType.Int).Value = valueToDecrementOrReinitiate;
+                    // open connection, execute UPDATE, close connection
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+                }
+            } else
+            {
+                throw new Exception("Vous n'avez pas choisi les bonnes colonnes au sein de la table Lock à mettre à jour, veuillez spécifier en paramètre soit AUTHTIME, soit LOCKTIME");
+            }
+        }
 
+        ////////////LES SELECTS
+        //le paramètre column doit spécifier les colonnes soit AUTHTIME ou LOCKTIME, selon la colonne de la table LOCK que l'on cherche à observer.
+        //On conseille spécifier une variable constante string pour le nom de la colonne, comme effectué à la ligne 18 à 21
+        private int SelectDataLockAuthTimeOrLockTime(string connectionString, string nameProc, string column)
+        {
+            int result = -1;
+            if(column=="AUTHTIME" || column == "LOCKEDTIME")
+            {
+                string query = "SELECT " + column + " FROM dbo.LOCK WHERE NAMEPROC = @nameProc";
+                // create connection and command
+                using (SqlConnection cn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, cn))
+                {
+                    // define parameters and their values
+                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 100).Value = nameProc;
+                    // open connection, execute UPDATE, close connection
+                    cn.Open();
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    reader.Read();
+                    result = reader.GetInt32(0);
+                    cn.Close();
+                }
+            } else
+            {
+                throw new Exception("Vous n'avez pas choisi les bonnes colonnes au sein de la table Lock à observer, veuillez spécifier en paramètre soit AUTHTIME, soit LOCKTIME");
+            }
 
+            if(result == -1)
+            {
+                throw new Exception("Le résultat de cette commande est mauvais, avez-vous spécifier un nom de processus existant ?");
+            }
+            return result;
+        }
 
         ///////////////////////////////////////FIN DES REQUETES/////////////////////////////////////////////
 
