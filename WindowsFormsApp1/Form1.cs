@@ -78,10 +78,10 @@ namespace WindowsFormsApp1
             using (SqlCommand cmd = new SqlCommand(query, cn))
             {
                 // define parameters and their values
-                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 50).Value = nameProcess;
-                cmd.Parameters.Add("@libelle", SqlDbType.VarChar, 50).Value = libelle;
+                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 100).Value = nameProcess;
+                cmd.Parameters.Add("@libelle", SqlDbType.VarChar, 100).Value = libelle;
                 cmd.Parameters.Add("@pid", SqlDbType.Int).Value = pid;
-                cmd.Parameters.Add("@chemin", SqlDbType.VarChar, 50).Value = chemin;
+                cmd.Parameters.Add("@chemin", SqlDbType.VarChar, 100).Value = chemin;
                 cmd.Parameters.Add("@isLocked", SqlDbType.Int).Value = isLocked;
                 cmd.Parameters.Add("@authTime", SqlDbType.Int).Value = authTime;
                 cmd.Parameters.Add("@lockTime", SqlDbType.Int).Value = lockTime;
@@ -89,6 +89,28 @@ namespace WindowsFormsApp1
                 cn.Open();
                 cmd.ExecuteNonQuery();
                 cn.Close();
+            }
+        }
+
+        private void InitiateLockDbFromTableApp(string connectionString, string nameProcess, int isLocked)
+        {
+            if (isLocked != 1)
+            {
+                throw new Exception("Impossible d'initialiser un locker si celui-ci n'a pas été demandé par l'utilisateur ! ");
+            } else
+            {
+                string query = "INSERT INTO dbo.LOCK(NAMEPROC,AUTHTIME,LOCKTIME)" +
+                                "SELECT NAMEPROCESS, AUTHTIME, LOCKTIME FROM dbo.APP WHERE NAMEPROCESS = @nameProcess;";
+
+                using (SqlConnection cn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, cn))
+                {
+                    cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 100).Value = nameProcess;
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+                }
+                Console.WriteLine("InitiateLocked SuccessFull ! ");
             }
         }
 
@@ -245,6 +267,10 @@ namespace WindowsFormsApp1
                 Console.WriteLine(authTimeWanted);
                 Console.WriteLine(lockTimeWanted);
                 UpdateDataAppOnSaveRestriction(connectionString, currentSelectedProc, statusWanted, authTimeWanted, lockTimeWanted);
+                if(statusWanted == 1)
+                {
+                    InitiateLockDbFromTableApp(connectionString, currentSelectedProc, statusWanted);
+                }
                 MessageBox.Show("Restriction enregistrée en BDD");
             } else
             {
