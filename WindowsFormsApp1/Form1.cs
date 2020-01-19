@@ -81,10 +81,10 @@ namespace WindowsFormsApp1
             using (SqlCommand cmd = new SqlCommand(query, cn))
             {
                 // define parameters and their values
-                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 100).Value = nameProcess;
-                cmd.Parameters.Add("@libelle", SqlDbType.VarChar, 100).Value = libelle;
+                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 300).Value = nameProcess;
+                cmd.Parameters.Add("@libelle", SqlDbType.VarChar, 300).Value = libelle;
                 cmd.Parameters.Add("@pid", SqlDbType.Int).Value = pid;
-                cmd.Parameters.Add("@chemin", SqlDbType.VarChar, 100).Value = chemin;
+                cmd.Parameters.Add("@chemin", SqlDbType.VarChar, 300).Value = chemin;
                 cmd.Parameters.Add("@isLocked", SqlDbType.Int).Value = isLocked;
                 cmd.Parameters.Add("@authTime", SqlDbType.Int).Value = authTime;
                 cmd.Parameters.Add("@lockTime", SqlDbType.Int).Value = lockTime;
@@ -95,27 +95,7 @@ namespace WindowsFormsApp1
             }
         }
 
-        private void InitiateLockDbFromTableApp(string connectionString, string nameProcess, int isLocked)
-        {
-            if (isLocked != 1)
-            {
-                throw new Exception("Impossible d'initialiser un locker si celui-ci n'a pas été demandé par l'utilisateur ! ");
-            } else
-            {
-                string query = "INSERT INTO dbo.LOCK(NAMEPROC,AUTHTIME,LOCKTIME)" +
-                                "SELECT NAMEPROCESS, AUTHTIME, LOCKTIME FROM dbo.APP WHERE NAMEPROCESS = @nameProcess;";
-
-                using (SqlConnection cn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand(query, cn))
-                {
-                    cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 100).Value = nameProcess;
-                    cn.Open();
-                    cmd.ExecuteNonQuery();
-                    cn.Close();
-                }
-                Console.WriteLine("InitiateLocked SuccessFull ! ");
-            }
-        }
+       
 
         /////LES UPDATES 
         private void UpdateDataAppPID(string connectionString, string nameProcess,int pid)
@@ -127,7 +107,7 @@ namespace WindowsFormsApp1
             {
                 // define parameters and their values
                 cmd.Parameters.Add("@pid", SqlDbType.Int).Value = pid;
-                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 50).Value = nameProcess;
+                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 300).Value = nameProcess;
                 // open connection, execute UPDATE, close connection
                 cn.Open();
                 cmd.ExecuteNonQuery();
@@ -143,7 +123,7 @@ namespace WindowsFormsApp1
             using (SqlCommand cmd = new SqlCommand(query, cn))
             {
                 // define parameters and their values
-                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 50).Value = nameProcess;
+                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 300).Value = nameProcess;
                 cmd.Parameters.Add("@isLocked", SqlDbType.Int).Value = isLocked;
                 cmd.Parameters.Add("@authTime", SqlDbType.Int).Value = authTime;
                 cmd.Parameters.Add("@lockTime", SqlDbType.Int).Value = lockTime;
@@ -165,7 +145,7 @@ namespace WindowsFormsApp1
             using (SqlCommand cmd = new SqlCommand(query, cn))
             {
                 // define parameters and their values
-                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 50).Value = nameProcess;
+                cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 300).Value = nameProcess;
                 // open connection, execute SELECT, close connection
                 cn.Open();
                 SqlDataReader reader = cmd.ExecuteReader();
@@ -176,13 +156,53 @@ namespace WindowsFormsApp1
             return result;
         }
         ///////////////////////////////////////SUR LA TABLE LOCK/////////////////////////////////////////////
+        ////// LES INSERTS
+        private void InitiateLockDbFromTableApp(string connectionString, string nameProcess, int isLocked)
+        {
+            if (isLocked != 1)
+            {
+                throw new Exception("Impossible d'initialiser un locker si celui-ci n'a pas été demandé par l'utilisateur ! ");
+            }
+            else
+            {
+                string query = "INSERT INTO dbo.LOCK(NAMEPROC,AUTHTIME,LOCKTIME)" +
+                                "SELECT NAMEPROCESS, AUTHTIME, LOCKTIME FROM dbo.APP WHERE NAMEPROCESS = @nameProcess;";
+
+                using (SqlConnection cn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, cn))
+                {
+                    cmd.Parameters.Add("@nameProcess", SqlDbType.VarChar, 300).Value = nameProcess;
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+                }
+                Console.WriteLine("InitiateLocked SuccessFull ! ");
+            }
+        }
+
+        ///// LES DELETES
+        private void DeleteDataLockExist(string connectionString, string nameProc)
+        {
+
+            string query = "DELETE FROM dbo.LOCK WHERE NAMEPROC = @nameProc";
+            using (SqlConnection cn = new SqlConnection(connectionString))
+            using (SqlCommand cmd = new SqlCommand(query, cn))
+            {
+                cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 300).Value = nameProc;
+                cn.Open();
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+                Console.WriteLine("Delete Lock SuccessFull ! ");
+        }
+
         ///////////LES UPDATES
-        
-            //le paramètre column doit spécifier les colonnes soit AUTHTIME ou LOCKTIME, selon la colonne de la table LOCK que l'on cherche à mettre à jour.
-            //On conseille spécifier une variable constante string pour le nom de la colonne, comme effectué à la ligne 18 à 21
+
+        //le paramètre column doit spécifier les colonnes soit AUTHTIME ou LOCKTIME, selon la colonne de la table LOCK que l'on cherche à mettre à jour.
+        //On conseille spécifier une variable constante string pour le nom de la colonne, comme effectué à la ligne 18 à 21
         private void UpdateDataLockAuthTimeOrLockTime(string connectionString, string nameProc, string column, int valueToDecrementOrReinitiate) 
         {
-            if (column == "AUTHTIME" || column == "LOCKEDTIME")
+            if (column == "AUTHTIME" || column == "LOCKTIME")
             {
                 string query = "UPDATE dbo.LOCK SET " + column + " = @valueToDecrementOrReinitiate WHERE NAMEPROC = @nameProc";
                 // create connection and command
@@ -190,7 +210,7 @@ namespace WindowsFormsApp1
                 using (SqlCommand cmd = new SqlCommand(query, cn))
                 {
                     // define parameters and their values
-                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 100).Value = nameProc;
+                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 300).Value = nameProc;
                     cmd.Parameters.Add("@valueToDecrementOrReinitiate", SqlDbType.Int).Value = valueToDecrementOrReinitiate;
                     // open connection, execute UPDATE, close connection
                     cn.Open();
@@ -203,13 +223,33 @@ namespace WindowsFormsApp1
             }
         }
 
+        private void UpdateDataLockAll(string connectionString, string nameProc, int authTime, int lockTime)
+        {
+                string query = "UPDATE dbo.LOCK SET AUTHTIME = @authTime, LOCKTIME = @lockTime WHERE NAMEPROC = @nameProc";
+                // create connection and command
+                using (SqlConnection cn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, cn))
+                {
+                    // define parameters and their values
+                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 300).Value = nameProc;
+                    cmd.Parameters.Add("@authTime", SqlDbType.Int).Value = authTime;
+                    cmd.Parameters.Add("@lockTime", SqlDbType.Int).Value = lockTime;
+                // open connection, execute UPDATE, close connection
+                cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+                }
+        }
+        
+
+
         ////////////LES SELECTS
         //le paramètre column doit spécifier les colonnes soit AUTHTIME ou LOCKTIME, selon la colonne de la table LOCK que l'on cherche à observer.
         //On conseille spécifier une variable constante string pour le nom de la colonne, comme effectué à la ligne 18 à 21
         private int SelectDataLockAuthTimeOrLockTime(string connectionString, string nameProc, string column)
         {
             int result = -1;
-            if(column=="AUTHTIME" || column == "LOCKEDTIME")
+            if(column=="AUTHTIME" || column == "LOCKTIME")
             {
                 string query = "SELECT " + column + " FROM dbo.LOCK WHERE NAMEPROC = @nameProc";
                 // create connection and command
@@ -217,7 +257,7 @@ namespace WindowsFormsApp1
                 using (SqlCommand cmd = new SqlCommand(query, cn))
                 {
                     // define parameters and their values
-                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 100).Value = nameProc;
+                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 300).Value = nameProc;
                     // open connection, execute UPDATE, close connection
                     cn.Open();
                     SqlDataReader reader = cmd.ExecuteReader();
@@ -236,6 +276,33 @@ namespace WindowsFormsApp1
             }
             return result;
         }
+
+        private int SelectDataLockAlreadyExist(string connectionString, string nameProc)
+        {
+            int result = -1;
+         
+                string query = "SELECT COUNT(NAMEPROC) FROM dbo.LOCK WHERE NAMEPROC = @nameProc";
+                // create connection and command
+                using (SqlConnection cn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand(query, cn))
+                {
+                    // define parameters and their values
+                    cmd.Parameters.Add("@nameProc", SqlDbType.VarChar, 300).Value = nameProc;
+                    // open connection, execute UPDATE, close connection
+                    cn.Open();
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    reader.Read();
+                    result = reader.GetInt32(0);
+                    cn.Close();
+                }  
+                
+            if (result == -1)
+            {
+                throw new Exception("Le résultat de cette commande est mauvais, avez-vous spécifier un nom de processus existant ?");
+            }
+            return result;
+        }
+
 
         ///////////////////////////////////////FIN DES REQUETES/////////////////////////////////////////////
 
@@ -262,7 +329,6 @@ namespace WindowsFormsApp1
                 currentSelectedProc = procName;
                 textBox1.Text = procName;
                 textBox5.Text = pid.ToString();
-                
                 if(SelectDataAppColumnInt(connectionString, procName, column_IsLocked) == 0)
                 {
                     textBox2.Text = "Unlocked process";
@@ -314,9 +380,21 @@ namespace WindowsFormsApp1
                 UpdateDataAppOnSaveRestriction(connectionString, currentSelectedProc, statusWanted, authTimeWanted, lockTimeWanted);
                 if(statusWanted == 1)
                 {
-                    InitiateLockDbFromTableApp(connectionString, currentSelectedProc, statusWanted);
+                    if(SelectDataLockAlreadyExist(connectionString, currentSelectedProc) == 0)
+                    {
+                        InitiateLockDbFromTableApp(connectionString, currentSelectedProc, statusWanted);
+                        MessageBox.Show("Restriction enregistrée en BDD");
+                    } else
+                    {
+                        UpdateDataLockAll(connectionString, currentSelectedProc, authTimeWanted, lockTimeWanted);
+                        MessageBox.Show("Restriction Mis a jour en BDD");
+                    }
+                    
+                } else if(statusWanted == 0 && SelectDataLockAlreadyExist(connectionString, currentSelectedProc) > 0) {
+                    DeleteDataLockExist(connectionString, currentSelectedProc);
+                    MessageBox.Show("Restriction supprimée");
                 }
-                MessageBox.Show("Restriction enregistrée en BDD");
+                
             } else
             {
                 MessageBox.Show("Vous devez selectionner un processus pour pouvoir le bloquer !");
